@@ -1,0 +1,548 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Semáforo de Riesgo de Reincidencia</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;background:#f4f6f8;color:#222}
+header{background:#1f2937;color:#fff;text-align:center;padding:35px 20px}
+header h1{margin-bottom:10px;font-size:30px}
+header p{max-width:800px;margin:auto;line-height:1.5}
+.contenedor{width:90%;max-width:1000px;margin:30px auto}
+.introduccion,.factor,.resultado,.resumen-ejes{background:#fff;padding:25px;border-radius:12px;margin-bottom:20px;box-shadow:0 3px 10px rgba(0,0,0,.08)}
+.introduccion h2,.factor h2,.resultado h2{margin-bottom:12px}
+.introduccion p,.factor>p{line-height:1.55;color:#555;margin-bottom:12px}
+.nota{margin-top:15px;font-size:13px;color:#666;line-height:1.5}
+.factor-cabecera{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:8px}
+.numero-eje{display:inline-block;background:#1f2937;color:#fff;border-radius:20px;padding:5px 11px;font-size:12px;margin-bottom:9px}
+.indicador{border-top:1px solid #e5e7eb;padding:15px 0}
+.indicador:first-of-type{border-top:0}
+.indicador-nombre{font-weight:600;line-height:1.4;margin-bottom:6px}
+.clasificacion{font-size:12px;color:#555;margin-bottom:10px}
+.etiqueta{display:inline-block;border-radius:20px;padding:3px 8px;font-size:11px;font-weight:bold;margin-left:5px}
+.etiqueta.bajo{background:#dcfce7;color:#166534}
+.etiqueta.medio{background:#fef3c7;color:#854d0e}
+.etiqueta.alto{background:#fee2e2;color:#991b1b}
+.opciones{display:flex;gap:8px;flex-wrap:wrap}
+.opciones button{flex:1;min-width:150px;padding:11px 9px;border:2px solid transparent;border-radius:8px;cursor:pointer;font-size:14px;font-weight:bold;transition:.15s}
+.opciones button:hover{filter:brightness(.96)}
+.opciones button.seleccionado{outline:3px solid #1f2937;outline-offset:1px}
+.btn-presente{background:#dbeafe;color:#1e40af}
+.btn-ausente{background:#e5e7eb;color:#374151}
+.btn-desconocido{background:#f3e8ff;color:#6b21a8}
+.estado-eje{font-size:13px;color:#555;margin-top:12px;padding:10px;background:#f8fafc;border-radius:7px}
+.estado-eje strong{color:#222}
+.resumen-ejes h2{margin-bottom:14px}
+.fila-eje{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid #eee;font-size:14px}
+.fila-eje:last-child{border-bottom:0}
+.resultado{text-align:center;margin-top:25px;padding:30px}
+.semaforo{margin:20px auto;width:100px;padding:15px;background:#222;border-radius:50px}
+.luz{width:55px;height:55px;border-radius:50%;margin:10px auto;opacity:.22}
+.luz.activa{opacity:1;box-shadow:0 0 12px rgba(255,255,255,.35)}
+.luz-roja{background:#ef4444}
+.luz-amarilla{background:#facc15}
+.luz-verde{background:#22c55e}
+#nivel{font-size:27px;font-weight:bold;margin:15px}
+#recomendacion{max-width:760px;margin:0 auto;line-height:1.6;color:#444}
+#detalleResultado{max-width:760px;margin:18px auto 0;text-align:left;background:#f8fafc;padding:15px;border-radius:8px;line-height:1.6;font-size:14px}
+.alerta-prioritaria{display:none;text-align:left;max-width:760px;margin:18px auto 0;padding:16px;border:2px solid #dc2626;background:#fef2f2;color:#7f1d1d;border-radius:9px;line-height:1.55}
+.advertencia{max-width:760px;margin:20px auto 0;padding:15px;text-align:left;border-left:5px solid #d69e26;background:#fffbeb;border-radius:7px;font-size:13px;line-height:1.55;color:#594514}
+.boton-reset{margin-top:25px;padding:12px 25px;border:0;border-radius:8px;background:#1f2937;color:white;cursor:pointer;font-size:16px}
+.boton-reset:hover{background:#374151}
+footer{text-align:center;padding:25px;margin-top:40px;background:#1f2937;color:white;font-size:14px;line-height:1.6}
+@media(max-width:600px){
+header h1{font-size:24px}
+.contenedor{width:94%}
+.introduccion,.factor,.resultado,.resumen-ejes{padding:19px}
+.opciones{flex-direction:column}
+.opciones button{width:100%}
+.factor-cabecera{display:block}
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>Semáforo de Riesgo de Reincidencia</h1>
+  <p>Herramienta de apoyo para la identificación preventiva de factores asociados al riesgo de reincidencia en adolescentes.</p>
+</header>
+
+<main class="contenedor">
+
+  <section class="introduccion">
+    <h2>¿Cómo funciona?</h2>
+    <p>Revise cada indicador y seleccione una opción: <strong>Presente</strong>, <strong>No identificado</strong> o <strong>Desconocido</strong>. Cada indicador conserva su clasificación cualitativa: bajo, medio o alto.</p>
+    <p>Cuando todos los indicadores estén valorados, la página calculará el resultado individual de cada eje y una clasificación general. Si algún indicador queda como desconocido, el resultado global permanecerá pendiente para evitar tratar la falta de datos como ausencia del factor.</p>
+  </section>
+
+  <div id="contenedorFactores"></div>
+
+  <section class="resumen-ejes">
+    <h2>Resumen por eje</h2>
+    <div id="resumenEjes">
+      <p class="nota">Complete la valoración para consultar los resultados individuales.</p>
+    </div>
+  </section>
+
+  <section class="resultado" id="seccionResultado">
+    <h2>Resultado de la valoración</h2>
+
+    <div class="semaforo" aria-label="Semáforo de riesgo">
+      <div id="luz-roja" class="luz luz-roja"></div>
+      <div id="luz-amarilla" class="luz luz-amarilla"></div>
+      <div id="luz-verde" class="luz luz-verde"></div>
+    </div>
+
+    <div id="nivel">Valoración pendiente</div>
+
+    <p id="recomendacion">Complete todos los indicadores para obtener el resultado general.</p>
+
+    <div id="alertaPrioritaria" class="alerta-prioritaria" role="alert"></div>
+
+    <div id="detalleResultado"></div>
+
+    <div class="advertencia">
+      <strong>Advertencia:</strong> Esta herramienta tiene carácter meramente orientativo y preventivo. Sus resultados no constituyen prueba, diagnóstico, dictamen pericial ni determinación comprobatoria de reincidencia. No permiten predecir conductas delictivas y no sustituyen la valoración profesional e interdisciplinaria ni la verificación de las circunstancias particulares de cada adolescente.
+    </div>
+
+    <button class="boton-reset" onclick="reiniciar()">Reiniciar valoración</button>
+  </section>
+
+</main>
+
+<footer>
+  <p>Proyecto de criminalística preventiva</p>
+  <p>Herramienta orientativa para la identificación de factores de riesgo y la orientación de acciones preventivas.</p>
+</footer>
+
+<script>
+
+const ejes = [
+
+  {
+    id:"spa",
+    titulo:"Eje 1. Consumo de sustancias psicoactivas (SPA)",
+    descripcion:"Identifica factores protectores y situaciones relacionadas con el consumo de sustancias psicoactivas.",
+    indicadores:[
+      ["No consumo de sustancias",1],
+      ["Alta percepción de riesgo frente al uso de SPA",1],
+      ["Desarrollo de habilidades sociales frente a la resistencia de presión social",1],
+      ["Consumo temprano de alcohol y/o cigarrillo",2],
+      ["Consumo experimental de SPA",2],
+      ["Baja percepción de riesgo en el consumo",2],
+      ["Normalización social del consumo",2],
+      ["Consumo abusivo",3],
+      ["Consumo problemático o dependiente de sustancias ilícitas",3],
+      ["Consumo grupal",3]
+    ]
+  },
+
+  {
+    id:"familia",
+    titulo:"Eje 2. Dinámica familiar y cuidado",
+    descripcion:"Considera las condiciones de cuidado, acompañamiento, comunicación y convivencia familiar.",
+    indicadores:[
+      ["Núcleo familiar estable con pautas de crianza asertivas",1],
+      ["Apoyo emocional efectivo",1],
+      ["Redes primarias de cuidado activas y vinculadas a programas sociales",1],
+      ["Conflictos familiares recurrentes",2],
+      ["Comunicación deficiente",2],
+      ["Pautas de crianza laxas o autoritarias",2],
+      ["Tensiones o presiones económicas extremas en el hogar",2],
+      ["Presencia de violencia intrafamiliar grave",3],
+      ["Maltrato o abuso infantil",3],
+      ["Negligencia absoluta de los cuidadores",3],
+      ["Antecedentes de padres/cuidadores privados de la libertad o vinculados al delito",3]
+    ]
+  },
+
+  {
+    id:"educativo",
+    titulo:"Eje 3. Entorno educativo",
+    descripcion:"Evalúa la vinculación, permanencia, participación y situación educativa del adolescente.",
+    indicadores:[
+      ["Asistencia regular a centro educativo",1],
+      ["Vinculación activa a modelos educativos",1],
+      ["Participación en actividades extracurriculares o de ocio",1],
+      ["Participación en formación técnica",1],
+      ["Inasistencias injustificadas frecuentes",2],
+      ["Bajo rendimiento académico recurrente",2],
+      ["Reportes de acoso escolar (víctima-acosador)",2],
+      ["Desmotivación expresa hacia el estudio",2],
+      ["Deserción escolar consumada",3],
+      ["Sobreedad por desfase educativo",3],
+      ["Expulsión por conductas violentas",3],
+      ["Desvinculación total de todo contexto académico",3]
+    ]
+  },
+
+  {
+    id:"territorio",
+    titulo:"Eje 4. Contexto territorial y calle",
+    descripcion:"Considera la relación con el espacio público, las condiciones del entorno y la exposición a contextos de vulnerabilidad.",
+    indicadores:[
+      ["Apropiación segura de parques y espacios comunitarios",1],
+      ["Participación en colectivos juveniles, culturales o deportivos",1],
+      ["Aprovechamiento constructivo del tiempo libre",1],
+      ["Uso no protegido ni supervisado del tiempo libre en el espacio público",2],
+      ["Residencia en sectores con déficit severo de infraestructura social, deportiva o recreativa",2],
+      ["Exposición habitual a entornos hostiles",2],
+      ["Permanencia prolongada e ininterrumpida en vía pública",3],
+      ["Ingreso a bandas criminales locales",3],
+      ["Residencia en focos críticos de alta delincuencia",3]
+    ]
+  },
+
+  {
+    id:"salud",
+    titulo:"Eje 5. Salud mental y regulación",
+    descripcion:"Examina habilidades de autorregulación, redes de apoyo y situaciones que pueden requerir atención especializada.",
+    indicadores:[
+      ["Adecuada capacidad de autorregulación emocional y resolución asertiva de conflictos",1],
+      ["Vinculación activa a redes de apoyo afectivo",1],
+      ["Acceso efectivo y oportuno a servicios de salud integral y autocuidado",1],
+      ["Débiles habilidades socioemocionales (baja tolerancia a la frustración, manejo deficiente del estrés)",2],
+      ["Aislamiento social",2],
+      ["Síntomas de ansiedad o depresión leve sin seguimiento médico",2],
+      ["Barreras económicas o administrativas para acceder a atención psicológica",2],
+      ["Presencia de ideación o conducta suicida",3,"alerta"],
+      ["Trastornos afectivos o conductuales severos sin tratamiento",3,"alerta"],
+      ["Trauma psicosocial agudo derivado de abuso físico/sexual",3],
+      ["Desregulación emocional extrema con episodios recurrentes de impulsividad violenta",3]
+    ]
+  }
+
+];
+
+const estados = {};
+
+ejes.forEach(eje =>
+  eje.indicadores.forEach((_,i) =>
+    estados[`${eje.id}-${i}`] = null
+  )
+);
+
+function claseTexto(valor){
+  return valor===1?"Bajo":valor===2?"Medio":"Alto";
+}
+
+function crearInterfaz(){
+
+  const contenedor=document.getElementById("contenedorFactores");
+  contenedor.innerHTML="";
+
+  ejes.forEach((eje,indice)=>{
+
+    const seccion=document.createElement("section");
+    seccion.className="factor";
+
+    seccion.innerHTML=`
+      <span class="numero-eje">${indice+1} de 5</span>
+      <div class="factor-cabecera">
+        <h2>${eje.titulo}</h2>
+      </div>
+      <p>${eje.descripcion}</p>
+      <div class="lista-indicadores"></div>
+      <div class="estado-eje" id="estado-${eje.id}">
+        Indicadores valorados: 0 de ${eje.indicadores.length}
+      </div>
+    `;
+
+    const lista=seccion.querySelector(".lista-indicadores");
+
+    eje.indicadores.forEach((indicador,i)=>{
+
+      const [nombre,nivel]=indicador;
+      const id=`${eje.id}-${i}`;
+
+      const item=document.createElement("div");
+      item.className="indicador";
+
+      item.innerHTML=`
+        <div class="indicador-nombre">${i+1}. ${nombre}</div>
+
+        <div class="clasificacion">
+          Clasificación:
+          <span class="etiqueta ${claseTexto(nivel).toLowerCase()}">
+            ${claseTexto(nivel)}
+          </span>
+        </div>
+
+        <div class="opciones" role="group" aria-label="Estado de ${nombre}">
+          <button type="button" class="btn-presente" data-estado="presente">Presente</button>
+          <button type="button" class="btn-ausente" data-estado="ausente">No identificado</button>
+          <button type="button" class="btn-desconocido" data-estado="desconocido">Desconocido</button>
+        </div>
+      `;
+
+      item.querySelectorAll("button").forEach(btn=>{
+        btn.addEventListener("click",()=>{
+          seleccionar(id,btn.dataset.estado,item);
+        });
+      });
+
+      lista.appendChild(item);
+
+    });
+
+    contenedor.appendChild(seccion);
+
+  });
+
+}
+
+function seleccionar(id,estado,item){
+
+  estados[id]=estado;
+
+  item.querySelectorAll("button").forEach(btn=>{
+    btn.classList.toggle(
+      "seleccionado",
+      btn.dataset.estado===estado
+    );
+  });
+
+  actualizarResultados();
+
+}
+
+function calcularEje(eje){
+
+  const respuestas=eje.indicadores.map(
+    (_,i)=>estados[`${eje.id}-${i}`]
+  );
+
+  const pendientes=respuestas.filter(
+    x=>x===null||x==="desconocido"
+  ).length;
+
+  const presentes=[];
+
+  eje.indicadores.forEach((indicador,i)=>{
+    if(respuestas[i]==="presente"){
+      presentes.push(indicador[1]);
+    }
+  });
+
+  const noIdentificados=respuestas.filter(
+    x=>x==="ausente"
+  ).length;
+
+  const promedio=presentes.length
+    ?presentes.reduce((a,b)=>a+b,0)/presentes.length
+    :null;
+
+  return {
+    pendientes,
+    presentes:presentes.length,
+    noIdentificados,
+    promedio,
+    completo:pendientes===0
+  };
+
+}
+
+function clasificarPromedio(promedio){
+
+  if(promedio===null)return "Sin indicadores presentes";
+  if(promedio<1.67)return "Bajo";
+  if(promedio<2.34)return "Medio";
+
+  return "Alto";
+
+}
+
+function actualizarResultados(){
+
+  let todosCompletos=true;
+  const resultados=[];
+
+  ejes.forEach(eje=>{
+
+    const r=calcularEje(eje);
+
+    resultados.push({eje,...r});
+
+    if(!r.completo)todosCompletos=false;
+
+    const estado=document.getElementById(`estado-${eje.id}`);
+    const total=eje.indicadores.length-r.pendientes;
+
+    estado.innerHTML=`
+      <strong>Indicadores valorados:</strong> ${total} de ${eje.indicadores.length}
+      · <strong>Presentes:</strong> ${r.presentes}
+      · <strong>No identificados:</strong> ${r.noIdentificados}
+      ${r.completo
+        ?` · <strong>Clasificación:</strong> ${r.promedio===null?"Sin indicadores presentes":clasificarPromedio(r.promedio)}`
+        :" · <strong>Estado:</strong> valoración pendiente"
+      }
+    `;
+
+  });
+
+  renderResumen(resultados,todosCompletos);
+
+  const alertas=[];
+
+  const ejeSalud=ejes.find(e=>e.id==="salud");
+
+  ejeSalud.indicadores.forEach((ind,i)=>{
+    if(ind[2]==="alerta"&&estados[`salud-${i}`]==="presente"){
+      alertas.push(ind[0]);
+    }
+  });
+
+  const cajaAlerta=document.getElementById("alertaPrioritaria");
+
+  if(alertas.length){
+
+    cajaAlerta.style.display="block";
+
+    cajaAlerta.innerHTML=`
+      <strong>⚠ ALERTA AUTOMÁTICA DE ATENCIÓN PRIORITARIA</strong>
+      <br>
+      Se identificó: ${alertas.join("; ")}.
+      Esta alerta requiere activar de manera inmediata la valoración profesional y las rutas de atención en salud y protección que correspondan.
+      La alerta roja es de atención prioritaria y no equivale, por sí misma, a un nivel alto de riesgo de reincidencia.
+    `;
+
+  }else{
+
+    cajaAlerta.style.display="none";
+    cajaAlerta.innerHTML="";
+
+  }
+
+  const luces=["luz-roja","luz-amarilla","luz-verde"];
+
+  luces.forEach(id=>{
+    document.getElementById(id).classList.remove("activa");
+  });
+
+  const nivel=document.getElementById("nivel");
+  const rec=document.getElementById("recomendacion");
+  const detalle=document.getElementById("detalleResultado");
+
+  if(!todosCompletos){
+
+    nivel.textContent="Valoración pendiente";
+
+    rec.textContent="Hay indicadores desconocidos o sin respuesta. Complete la valoración de todos los indicadores para obtener un resultado general; un indicador desconocido no se contabiliza como ausencia.";
+
+    detalle.textContent="El resumen individual puede consultarse por eje, pero la clasificación general no se calcula mientras existan respuestas pendientes.";
+
+    return;
+
+  }
+
+  const ejesConDatos=resultados.filter(
+    r=>r.promedio!==null
+  );
+
+  if(ejesConDatos.length===0){
+
+    nivel.textContent="Sin indicadores presentes";
+
+    rec.textContent="No se registraron indicadores presentes en los cinco ejes. Esto no constituye una conclusión sobre el comportamiento futuro del adolescente.";
+
+    detalle.textContent="No es posible establecer una clasificación general cuando no se registran indicadores presentes.";
+
+    return;
+
+  }
+
+  const promedioGeneral=ejesConDatos.reduce(
+    (s,r)=>s+r.promedio,0
+  )/ejesConDatos.length;
+
+  const categoria=clasificarPromedio(promedioGeneral);
+
+  if(categoria==="Alto"){
+
+    document.getElementById("luz-roja").classList.add("activa");
+
+    nivel.textContent="🔴 RIESGO IDENTIFICADO: ALTO";
+
+    rec.textContent="Se recomienda priorizar una valoración interdisciplinaria, revisar las necesidades de protección y articular las rutas institucionales pertinentes. La clasificación no determina reincidencia.";
+
+  }else if(categoria==="Medio"){
+
+    document.getElementById("luz-amarilla").classList.add("activa");
+
+    nivel.textContent="🟡 RIESGO IDENTIFICADO: MEDIO";
+
+    rec.textContent="Se recomienda fortalecer los factores protectores mediante acompañamiento psicosocial, permanencia educativa, prevención del consumo de SPA y articulación con redes familiares y comunitarias.";
+
+  }else{
+
+    document.getElementById("luz-verde").classList.add("activa");
+
+    nivel.textContent="🟢 RIESGO IDENTIFICADO: BAJO";
+
+    rec.textContent="Se recomienda mantener el seguimiento y fortalecer los factores protectores, la vinculación educativa, las redes de apoyo y la participación en actividades culturales, deportivas y comunitarias.";
+
+  }
+
+  detalle.innerHTML=`
+    <strong>Ejes incluidos en la valoración:</strong>
+    ${ejesConDatos.length} de 5.
+    Los ejes sin indicadores presentes se muestran como “sin indicadores presentes” y no se incluyen en la clasificación general.
+    <br>
+    <strong>Criterio:</strong>
+    cada eje se analiza individualmente y los ejes incluidos tienen el mismo peso en la clasificación general.
+  `;
+
+}
+
+function renderResumen(resultados,todosCompletos){
+
+  const cont=document.getElementById("resumenEjes");
+
+  cont.innerHTML=resultados.map(r=>`
+    <div class="fila-eje">
+      <span>${r.eje.titulo}</span>
+      <strong>
+        ${!r.completo
+          ?"Pendiente"
+          :r.promedio===null
+            ?"Sin indicadores presentes"
+            :clasificarPromedio(r.promedio)
+        }
+      </strong>
+    </div>
+  `).join("");
+
+}
+
+function reiniciar(){
+
+  Object.keys(estados).forEach(id=>{
+    estados[id]=null;
+  });
+
+  crearInterfaz();
+  actualizarResultados();
+
+  document.getElementById("nivel").textContent="Valoración pendiente";
+
+  document.getElementById("recomendacion").textContent="Complete todos los indicadores para obtener el resultado general.";
+
+  document.getElementById("detalleResultado").textContent="";
+
+  ["luz-roja","luz-amarilla","luz-verde"].forEach(id=>{
+    document.getElementById(id).classList.remove("activa");
+  });
+
+}
+
+crearInterfaz();
+actualizarResultados();
+
+</script>
+
+</body>
+</html>
